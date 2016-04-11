@@ -3,7 +3,6 @@
 
 namespace nfq\WeatherBundle\Service;
 
-
 class WeatherService implements WeatherServiceInterface
 {
     private $weatherProvider;
