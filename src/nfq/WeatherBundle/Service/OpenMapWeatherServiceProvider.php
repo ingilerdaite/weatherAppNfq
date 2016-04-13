@@ -3,21 +3,33 @@
 
 namespace nfq\WeatherBundle\Service;
 
-use EightPoints\Bundle\GuzzleBundle\GuzzleBundle;
+use GuzzleHttp\Client;
+use nfq\WeatherBundle\Model\Location;
+use nfq\WeatherBundle\Model\Weather;
+use Symfony\Component\Config\Definition\Exception\Exception;
 
 class OpenMapWeatherServiceProvider implements WeatherServiceProviderInterface
 {
-    const PROVIDERURI = "http://api.openweathermap.org/data/2.5/weather?q=%s&appid=%s&units=metric";
+    private $appId;
+    private $baseApiUrl;
+    private $weatherEndpointPath;
 
-    public function GetWeatherByCityName($city)
+    public function __construct($settings)
     {
-        $client   = $this->get('guzzle.client');
-        $apikey = $this->container->getParameter('owm_api-key');
-        $formaterUrl = sprintf(self::PROVIDERURI, $city, $apikey);
-        $responseFromServer = $client->get($formaterUrl)->send();
+        $this->appId = $settings['api_key'];
+        $this->baseApiUrl = $settings['base_uri'];
+        $this->weatherEndpointPath = $settings['endpoint_path'];
+    }
 
-        $jsonDataObject = $responseFromServer->json();
-        $temperature = $jsonDataObject['main']['temp'];
-        return $temperature;
+    public function getWeatherByLocation(Location $location) : Weather
+    {
+        $client = new Client(['base_uri' => $this->baseApiUrl]);
+        $formatedEndpointUr = sprintf($this->weatherEndpointPath, $location->getCity(), $this->appId);
+        $response = $client->request('GET', $formatedEndpointUr);
+        if ($response->getStatusCode() != 200) {
+            throw new Exception('Ups something went terribly wrong!');
+        }
+
+        return OpenMapWeatherResponseParser::parseWeatherApiResponse($response);
     }
 }
